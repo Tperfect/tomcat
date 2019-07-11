@@ -12,6 +12,7 @@ import java.net.Socket;
  * web服务器
  */
 public class HttpServer {
+
     public static final String WEB_ROOT = System.getProperty("user.dir") + File.separator + "webroot";
 
     private static final String SHUTDOWN_COMMAND = "/SHUTDOWN";
@@ -40,15 +41,28 @@ public class HttpServer {
                 input = socket.getInputStream();
                 output = socket.getOutputStream();
 
+                //创建request对象
                 Request request = new Request(input);
                 request.parse();
 
+                //创建response对象
                 Response response = new Response(output);
                 response.setRequest(request);
-                response.sendStaticResource();
+
+                //判断是请求静态资源还是请求servlet
+                if (request.getUri().startsWith("/servlet/")){
+                    ServletProcessor processor = new ServletProcessor();
+                    processor.process(request,response);
+                }else {
+                    StaticResourceProcesser processer = new StaticResourceProcesser();
+                    processer.process(request,response);
+                }
+
+                //关闭当前socket
                 socket.close();
 
-                //    shutdown = request.getUri().equals(SHUTDOWN_COMMAND);
+                //判断是否为停止容器的请求
+                shutdown = request.getUri().equals(SHUTDOWN_COMMAND);
             } catch (IOException e) {
                 e.printStackTrace();
                 System.exit(1);
